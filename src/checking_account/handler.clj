@@ -9,7 +9,8 @@
             [compojure.route :as route]
             [clj-time.core :as clj-time]
             [clj-time.format :as clj-time-format]
-            [clj-time.coerce :as clj-time-coerce]))
+            [clj-time.coerce :as clj-time-coerce]
+            [clojure.string :as str]))
 
 (defn parse-date [date]
   "yyyy-MM-dd to DateTime"
@@ -22,6 +23,18 @@
   (clj-time-format/unparse
     (clj-time-format/formatter "dd/MM/yyyy")
     (parse-date date)))
+
+(defn humanize-brazilian-money [amount]
+  "i.e. Converts 1000.0 to R$ 1000,00"
+  (let [replaced-amount (str/replace (str amount) "." ",")
+        splitted-amount (str/split replaced-amount #",")
+        amount-decimals (last splitted-amount)]
+    (if (< (count amount-decimals) 2)
+      (loop [decimals (str amount-decimals "0")]
+        (if (< (count decimals) 2)
+          (recur (str decimals "0"))
+          (str "R$ " (str (first splitted-amount) "," decimals))))
+      (str "R$ " replaced-amount))))
 
 (def accounts
   (ref [{:account-number 123,
