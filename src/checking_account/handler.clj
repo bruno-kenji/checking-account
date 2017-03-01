@@ -229,8 +229,13 @@
       {:error {:message "Unable to retrieve account balance.", :code 500}})))
 
 (defn- get-statements [account-number params]
-  (prn "get-statements says hello")
-  "get-statements says hello")
+  (try
+    (let [from (get params :from)
+          to (get params :to)]
+      {:data {:statements (period-statements account-number from to),
+              :period {:from from, :to to}}})
+    (catch Exception e
+      {:error {:message "Unable to retrieve account statements.", :code 500}})))
 
 (defn- get-debts [account-number]
   (prn "get-debts says hello")
