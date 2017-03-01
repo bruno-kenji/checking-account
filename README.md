@@ -1,13 +1,13 @@
 ## What am I
 I am a Clojure API that simulates checking account features. This is a training for studying purposes only.  
 
-# Setup
+## Setup
 Install leiningen: https://leiningen.org/.  
 
-# Running the API server
+## Running the API server
 From the project directory, run: **lein ring server**.  
 
-# Using the API
+## Using the API
 For testing the requests, use Postman: https://www.getpostman.com/ or the method of your preference.  
 Example of URL using localhost: https://localhost:3000/456/debits.  
 
