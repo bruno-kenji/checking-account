@@ -10,7 +10,7 @@
                  [ring/ring-json "0.4.0"]
                  [clj-time "0.13.0"]]
   :plugins [[lein-ring "0.11.0"]]
-  :ring {:handler restful-clojure.handler/app
+  :ring {:handler checking-account.handler/app
          :nrepl {:start? true
                  :port 9998}}
   :profiles

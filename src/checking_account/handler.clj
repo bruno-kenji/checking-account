@@ -1,4 +1,4 @@
-(ns restful-clojure.handler
+(ns checking-account.handler
   (:use compojure.core
         ring.middleware.json
         ring.middleware.params
@@ -19,6 +19,13 @@
                        :description "Deposit R$ 118.00 at 22/02/2017",
                        :id 1}]}]))
 
+(defn make-account [params]
+  (let [acc {:account-number (get params :account-number),
+             :balance (get params :balance),
+             :operations (get params :operations)}]
+    (dosync
+      (alter accounts conj acc))))
+
 (defn get-account [account-number]
   (if (integer? account-number)
     (loop [index 0 size (count @accounts)]
@@ -31,13 +38,19 @@
     (let [acc-num (Integer/parseInt account-number)]
       (recur acc-num))))
 
-(defn- put-credit [account-number body]
-  (prn "put-credit says hello")
-  "put-credit says hello")
+(defn- post-accounts [body]
+  {:data (make-account body)})
 
-(defn- put-debit [account-number body]
-  (prn "put-debit says hello")
-  "put-debit says hello")
+(defn- get-accounts []
+  {:data @accounts})
+
+(defn- post-credits [account-number body]
+  (prn "post-credits says hello")
+  "post-credits says hello")
+
+(defn- post-debits [account-number body]
+  (prn "post-debits says hello")
+  "post-debits says hello")
 
 (defn- get-balance [account-number]
   (prn "get-balance says hello")
@@ -52,9 +65,11 @@
   "get-debts says hello")
 
 (defroutes app-routes
+  (GET "/accounts" [] (response (get-accounts)))
+  (POST "/accounts" {body :body} (response (post-accounts body)))
   (context "/:account" [account]
-    (PUT "/credit" {body :body} (response (put-credit account body)))
-    (PUT "/debit" {body :body} (response (put-debit account body)))
+    (POST "/credits" {body :body} (response (post-credits account body)))
+    (POST "/debits" {body :body} (response (post-debits account body)))
     (GET "/balance" [] (response (get-balance account)))
     (GET "/statements" {params :query-params} (response (get-statements account (keywordize-keys params))))
     (GET "/debts" [] (response (get-debts account))))
