@@ -12,8 +12,8 @@ For testing the requests, use Postman: https://www.getpostman.com/ or the method
 Example of URL using localhost: https://localhost:3000/456/debits.  
 
 #### ACCOUNTS
-GET hosturl/accounts  
-POST hosturl/accounts  
+GET :hosturl/accounts  
+POST :hosturl/accounts  
 `{"account-number":int,  
   "operations":[],  
   "balance":float}`  
@@ -25,27 +25,27 @@ operation format:
 }`  
 
 #### DEBIT
-POST hosturl/:account-number/debits  
+POST :hosturl/:account-number/debits  
 `{"amount":float,  
   "type":"purchase", "withdrawal" or "debit",  
-  "date":"yyy-MM-dd",  
-  "other-party":"string"}`  
-other-party is considered for purchase type  
+  "date":"yyyy-MM-dd",  
+  "other-party":"string"}`  
+`other-party` is considered for "purchase" type only  
 
 #### CREDIT
-POST hosturl/:account-number/credits  
+POST :hosturl/:account-number/credits  
 `{"amount":float,  
   "type":"deposit", "withdrawal" or "credit",  
-  "date":"yyy-MM-dd"}`  
+  "date":"yyyy-MM-dd"}`  
 
 #### BALANCE
-GET hosturl/:account-number/balances  
+GET :hosturl/:account-number/balances  
 
 #### STATEMENTS
-GET hosturl/:account-number/statements  
+GET :hosturl/:account-number/statements  
 
 #### DEBTS
-GET hosturl/:account-number/debts  
+GET :hosturl/:account-number/debts  
 
 ## TODO/DOING
 Finish Debts endpoint functionality  
