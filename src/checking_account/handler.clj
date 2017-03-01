@@ -21,11 +21,19 @@
 (defn negativate-number [number]
   (- (max number (- number))))
 
+(defn two-decimals [number]
+  (float (/ (Math/round (* number 100)) 100)))
+
 (defn parse-date [date]
   "yyyy-MM-dd to DateTime"
   (clj-time-format/parse
     (clj-time-format/formatter :year-month-day)
     date))
+
+(defn to-miliseconds [date]
+  "yyyy-MM-dd to miliseconds since Unix Epoch"
+  (clj-time-coerce/to-long
+    (parse-date date)))
 
 (defn humanize-brazilian-date [date]
   "Converts yyyy-MM-dd to dd-MM-yyyy"
@@ -110,6 +118,17 @@
           (hash-map))))
     (let [acc-num (Integer/parseInt account-number)]
       (recur acc-num))))
+
+(defn calculate-balance [acc date]
+  (let [operations (filter #(<=
+                             (to-miliseconds (get % :date))
+                             (to-miliseconds date))
+                     (get acc :operations))
+        balance (if (empty? operations)
+                  (int 0)
+                  (->> operations
+                    (map #(get % :amount))
+                    (reduce #(two-decimals (+ %1 %2)))))]))
 
 (defn new-operation [account-number params]
   (try
