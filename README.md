@@ -9,7 +9,7 @@ From the project directory, run: **lein ring server**.
 
 ## Using the API
 For testing the requests, use Postman: https://www.getpostman.com/ or the method of your preference.  
-Example of URL using localhost: https://localhost:3000/456/debits.  
+Example of URL using localhost: *https://localhost:3000/456/debits*.  
 
 #### ACCOUNTS
 GET :hosturl/accounts  
@@ -30,7 +30,7 @@ POST :hosturl/:account-number/debits
   "type":"purchase", "withdrawal" or "debit",  
   "date":"yyyy-MM-dd",  
   "other-party":"string"}`  
-`other-party` is considered for "purchase" type only  
+*other-party* is considered for "purchase" type only  
 
 #### CREDIT
 POST :hosturl/:account-number/credits  
