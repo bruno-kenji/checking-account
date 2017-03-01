@@ -6,7 +6,64 @@
         clojure.walk)
   (:require [compojure.handler :as handler]
             [ring.util.response :refer [response]]
-            [compojure.route :as route]))
+            [compojure.route :as route]
+            [clj-time.core :as clj-time]
+            [clj-time.format :as clj-time-format]
+            [clj-time.coerce :as clj-time-coerce]
+            [clojure.string :as str]
+            [clojure.pprint :as pprint]))
+
+(defn delete-element-from-vector [vector index]
+  "Returns vector without given index"
+  (vec (concat
+         (subvec vector 0 index)
+         (subvec vector (inc index)))))
+
+(defn negativate-number [number]
+  (- (max number (- number))))
+
+(defn round-decimals [number decimal-places]
+  "Round a double/float to the given number of decimal-places"
+  (read-string (pprint/cl-format nil (str "~," decimal-places "f") number)))
+
+(defn parse-date [date]
+  "yyyy-MM-dd to DateTime"
+  (clj-time-format/parse
+    (clj-time-format/formatter :year-month-day)
+    date))
+
+(defn to-miliseconds [date]
+  "yyyy-MM-dd to miliseconds since Unix Epoch"
+  (clj-time-coerce/to-long
+    (parse-date date)))
+
+(defn humanize-brazilian-date [date]
+  "Converts yyyy-MM-dd to dd-MM-yyyy"
+  (clj-time-format/unparse
+    (clj-time-format/formatter "dd/MM/yyyy")
+    (parse-date date)))
+
+(defn humanize-brazilian-money [amount]
+  "i.e. Converts 1000.0 to R$ 1000,00"
+  (let [replaced-amount (str/replace (str amount) "." ",")
+        splitted-amount (str/split replaced-amount #",")
+        amount-decimals (last splitted-amount)]
+    (if (< (count amount-decimals) 2)
+      (loop [decimals (str amount-decimals "0")]
+        (if (< (count decimals) 2)
+          (recur (str decimals "0"))
+          (str "R$ " (str (first splitted-amount) "," decimals))))
+      (str "R$ " replaced-amount))))
+
+(def current-date
+  (clj-time-format/unparse
+    (clj-time-format/formatter :year-month-day)
+    (clj-time/now)))
+
+(defn get-date [date]
+  (if (empty? date)
+    current-date
+    date))
 
 (def accounts
   (ref [{:account-number 123,
@@ -52,6 +109,16 @@
       :else
       "No description")))
 
+(defn description-without-date [description]
+  (str/replace description #" at [^.]{10}" ""))
+
+(defn operations-by-date [operations date]
+  (filter #(= date (get % :date)) operations))
+
+(defn statement-descriptions [operations date]
+  (vec (map #(description-without-date (get % :description))
+             (operations-by-date operations date))))
+
 (defn get-account [account-number]
   (if (integer? account-number)
     (loop [index 0 size (count @accounts)]
@@ -64,6 +131,34 @@
     (let [acc-num (Integer/parseInt account-number)]
       (recur acc-num))))
 
+(defn calculate-balance [acc date]
+  (let [operations (filter #(<=
+                             (to-miliseconds (get % :date))
+                             (to-miliseconds date))
+                     (get acc :operations))
+        balance (if (empty? operations)
+                  (int 0)
+                  (->> operations
+                    (map #(get % :amount))
+                    (reduce #(round-decimals (+ %1 %2) 2))))]
+    balance))
+
+(defn period-statements [account-number from to]
+  (let [acc (get-account account-number)
+        filters [#(>=
+                    (to-miliseconds (get % :date))
+                    (to-miliseconds from))
+                 #(<=
+                    (to-miliseconds (get % :date))
+                    (to-miliseconds to))]
+        operations (filter (apply every-pred filters) (get acc :operations))
+        dates (distinct (vec (map #(% :date) operations)))
+        statements (vec (map #(hash-map
+                                :date %,
+                                :balance (calculate-balance acc %),
+                                :descriptions (statement-descriptions operations %)) dates))]
+    (sort-by :date statements)))
+
 (defn new-operation [account-number params]
   (try
     (let [operation {:amount (get params :amount),
@@ -74,7 +169,7 @@
           operations {:operations (conj (get acc :operations) operation)}
           updated-acc (conj acc (sort-by :date operations))]
       (dosync
-        (alter accounts delete-element (.indexOf @accounts acc))
+        (alter accounts delete-element-from-vector (.indexOf @accounts acc))
         (alter accounts conj updated-acc)
         (prn @accounts)
         true))
@@ -89,20 +184,60 @@
   {:data @accounts})
 
 (defn- post-credits [account-number body]
-  (prn "post-credits says hello")
-  "post-credits says hello")
+  (let [amount (get body :amount)
+        date (get-date (get body :date))
+        type (get body :type)
+        description (generate-description type amount date)
+        operation-id (generate-operation-id (get-account account-number))
+        params {:amount amount,
+                :date date,
+                :description description,
+                :operation-id operation-id}]
+    (if (new-operation account-number params)
+      {:data {:description description,
+              :amount amount,
+              :account-number account-number,
+              :date date,
+              :id operation-id}}
+      {:error {:message "Unable to credit amount.", :code 500}})))
 
 (defn- post-debits [account-number body]
-  (prn "post-debits says hello")
-  "post-debits says hello")
+  (let [amount (negativate-number (get body :amount))
+        date (get-date (get body :date))
+        type (get body :type)
+        other-party (get body :other-party)
+        description (generate-description type (get body :amount) date other-party)
+        operation-id (generate-operation-id (get-account account-number))
+        params {:amount amount,
+                :date date,
+                :description description,
+                :operation-id operation-id}]
+    (if (new-operation account-number params)
+      {:data {:description description,
+              :amount amount,
+              :account-number account-number,
+              :date date,
+              :id operation-id}}
+      {:error {:message "Unable to debit amount.", :code 500}})))
 
 (defn- get-balance [account-number]
-  (prn "get-balance says hello")
-  "get-balance says hello")
+  (try
+    (let [date current-date
+          balance (calculate-balance (get-account account-number) date)]
+      {:data {:description (humanize-brazilian-money balance),
+              :balance balance,
+              :date date}})
+    (catch Exception e
+      {:error {:message "Unable to retrieve account balance.", :code 500}})))
 
 (defn- get-statements [account-number params]
-  (prn "get-statements says hello")
-  "get-statements says hello")
+  (try
+    (let [from (get params :from)
+          to (get params :to)]
+      {:data {:statements (period-statements account-number from to),
+              :period {:from from, :to to}}})
+    (catch Exception e
+      {:error {:message "Unable to retrieve account statements.", :code 500}})))
 
 (defn- get-debts [account-number]
   (prn "get-debts says hello")
