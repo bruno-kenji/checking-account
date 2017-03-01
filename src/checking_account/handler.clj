@@ -10,7 +10,8 @@
             [clj-time.core :as clj-time]
             [clj-time.format :as clj-time-format]
             [clj-time.coerce :as clj-time-coerce]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.pprint :as pprint]))
 
 (defn delete-element-from-vector [vector index]
   "Returns vector without given index"
@@ -21,8 +22,9 @@
 (defn negativate-number [number]
   (- (max number (- number))))
 
-(defn two-decimals [number]
-  (float (/ (Math/round (* number 100)) 100)))
+(defn round-decimals [number decimal-places]
+  "Round a double/float to the given number of decimal-places"
+  (read-string (pprint/cl-format nil (str "~," decimal-places "f") number)))
 
 (defn parse-date [date]
   "yyyy-MM-dd to DateTime"
@@ -138,7 +140,7 @@
                   (int 0)
                   (->> operations
                     (map #(get % :amount))
-                    (reduce #(two-decimals (+ %1 %2)))))]
+                    (reduce #(round-decimals (+ %1 %2) 2))))]
     balance))
 
 (defn period-statements [account-number from to]
