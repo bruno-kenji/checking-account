@@ -128,7 +128,8 @@
                   (int 0)
                   (->> operations
                     (map #(get % :amount))
-                    (reduce #(two-decimals (+ %1 %2)))))]))
+                    (reduce #(two-decimals (+ %1 %2)))))]
+    balance))
 
 (defn new-operation [account-number params]
   (try
@@ -192,8 +193,14 @@
       {:error {:message "Unable to debit amount.", :code 500}})))
 
 (defn- get-balance [account-number]
-  (prn "get-balance says hello")
-  "get-balance says hello")
+  (try
+    (let [date current-date
+          balance (calculate-balance (get-account account-number) date)]
+      {:data {:description (humanize-brazilian-money balance),
+              :balance balance,
+              :date date}})
+    (catch Exception e
+      {:error {:message "Unable to retrieve account balance.", :code 500}})))
 
 (defn- get-statements [account-number params]
   (prn "get-statements says hello")
