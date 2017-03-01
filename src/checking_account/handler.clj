@@ -6,7 +6,22 @@
         clojure.walk)
   (:require [compojure.handler :as handler]
             [ring.util.response :refer [response]]
-            [compojure.route :as route]))
+            [compojure.route :as route]
+            [clj-time.core :as clj-time]
+            [clj-time.format :as clj-time-format]
+            [clj-time.coerce :as clj-time-coerce]))
+
+(defn parse-date [date]
+  "yyyy-MM-dd to DateTime"
+  (clj-time-format/parse
+    (clj-time-format/formatter :year-month-day)
+    date))
+
+(defn humanize-brazilian-date [date]
+  "Converts yyyy-MM-dd to dd-MM-yyyy"
+  (clj-time-format/unparse
+    (clj-time-format/formatter "dd/MM/yyyy")
+    (parse-date date)))
 
 (def accounts
   (ref [{:account-number 123,
