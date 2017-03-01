@@ -133,8 +133,22 @@
   {:data @accounts})
 
 (defn- post-credits [account-number body]
-  (prn "post-credits says hello")
-  "post-credits says hello")
+  (let [amount (get body :amount)
+        date (get-date (get body :date))
+        type (get body :type)
+        description (generate-description type amount date)
+        operation-id (generate-operation-id (get-account account-number))
+        params {:amount amount,
+                :date date,
+                :description description,
+                :operation-id operation-id}]
+    (if (new-operation account-number params)
+      {:data {:description description,
+              :amount amount,
+              :account-number account-number,
+              :date date,
+              :id operation-id}}
+      {:error {:message "Unable to credit amount.", :code 500}})))
 
 (defn- post-debits [account-number body]
   (prn "post-debits says hello")
