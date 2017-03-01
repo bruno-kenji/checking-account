@@ -141,6 +141,22 @@
                     (reduce #(two-decimals (+ %1 %2)))))]
     balance))
 
+(defn period-statements [account-number from to]
+  (let [acc (get-account account-number)
+        filters [#(>=
+                    (to-miliseconds (get % :date))
+                    (to-miliseconds from))
+                 #(<=
+                    (to-miliseconds (get % :date))
+                    (to-miliseconds to))]
+        operations (filter (apply every-pred filters) (get acc :operations))
+        dates (distinct (vec (map #(% :date) operations)))
+        statements (vec (map #(hash-map
+                                :date %,
+                                :balance (calculate-balance acc %),
+                                :descriptions (statement-descriptions operations %)) dates))]
+    (sort-by :date statements)))
+
 (defn new-operation [account-number params]
   (try
     (let [operation {:amount (get params :amount),
