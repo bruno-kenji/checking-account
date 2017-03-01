@@ -38,6 +38,24 @@
     (let [acc-num (Integer/parseInt account-number)]
       (recur acc-num))))
 
+(defn new-operation [account-number params]
+  (try
+    (let [operation {:amount (get params :amount),
+                     :date (get params :date),
+                     :description (get params :description),
+                     :id (get params :operation-id)}
+          acc (get-account account-number)
+          operations {:operations (conj (get acc :operations) operation)}
+          updated-acc (conj acc (sort-by :date operations))]
+      (dosync
+        (alter accounts delete-element (.indexOf @accounts acc))
+        (alter accounts conj updated-acc)
+        (prn @accounts)
+        true))
+    (catch Exception e
+      (prn "new-operation Exception: " e)
+      false)))
+
 (defn- post-accounts [body]
   {:data (make-account body)})
 
