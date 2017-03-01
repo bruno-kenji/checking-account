@@ -8,6 +8,29 @@
             [ring.util.response :refer [response]]
             [compojure.route :as route]))
 
+(def accounts
+  (ref [{:account-number 123,
+         :balance 0,
+         :operations []},
+        {:account-number 456,
+         :balance 118.08,
+         :operations [{:amount 118.08,
+                       :date "2017-02-22",
+                       :description "Deposit R$ 118.00 at 22/02/2017",
+                       :id 1}]}]))
+
+(defn get-account [account-number]
+  (if (integer? account-number)
+    (loop [index 0 size (count @accounts)]
+      (let [acc (nth @accounts index)]
+        (cond
+          (= (get acc :account-number) account-number) acc
+          (< index (dec size)) (recur (inc index) (dec size))
+          :else
+          (hash-map))))
+    (let [acc-num (Integer/parseInt account-number)]
+      (recur acc-num))))
+
 (defn- put-credit [account-number body]
   (prn "put-credit says hello")
   "put-credit says hello")
