@@ -107,6 +107,16 @@
       :else
       "No description")))
 
+(defn description-without-date [description]
+  (str/replace description #" at [^.]{10}" ""))
+
+(defn operations-by-date [operations date]
+  (filter #(= date (get % :date)) operations))
+
+(defn statement-descriptions [operations date]
+  (vec (map #(description-without-date (get % :description))
+             (operations-by-date operations date))))
+
 (defn get-account [account-number]
   (if (integer? account-number)
     (loop [index 0 size (count @accounts)]
