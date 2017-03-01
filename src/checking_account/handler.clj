@@ -12,6 +12,12 @@
             [clj-time.coerce :as clj-time-coerce]
             [clojure.string :as str]))
 
+(defn delete-element-from-vector [vector index]
+  "Returns vector without given index"
+  (vec (concat
+         (subvec vector 0 index)
+         (subvec vector (inc index)))))
+
 (defn parse-date [date]
   "yyyy-MM-dd to DateTime"
   (clj-time-format/parse
@@ -35,6 +41,16 @@
           (recur (str decimals "0"))
           (str "R$ " (str (first splitted-amount) "," decimals))))
       (str "R$ " replaced-amount))))
+
+(def current-date
+  (clj-time-format/unparse
+    (clj-time-format/formatter :year-month-day)
+    (clj-time/now)))
+
+(defn get-date [date]
+  (if (empty? date)
+    current-date
+    date))
 
 (def accounts
   (ref [{:account-number 123,
@@ -102,7 +118,7 @@
           operations {:operations (conj (get acc :operations) operation)}
           updated-acc (conj acc (sort-by :date operations))]
       (dosync
-        (alter accounts delete-element (.indexOf @accounts acc))
+        (alter accounts delete-element-from-vector (.indexOf @accounts acc))
         (alter accounts conj updated-acc)
         (prn @accounts)
         true))
