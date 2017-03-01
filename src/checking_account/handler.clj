@@ -26,6 +26,32 @@
     (dosync
       (alter accounts conj acc))))
 
+(defn generate-operation-id [acc]
+  (inc (count (get acc :operations))))
+
+(defn generate-description [type amount date & [other-party]]
+  (let [humanized-date (humanize-brazilian-date date)
+        humanized-money (humanize-brazilian-money amount)]
+    (cond
+      ; Credit
+      (= type "deposit")
+      (str "Deposit " humanized-money " at " humanized-date)
+      (= type "credit")
+      (str "Credit " humanized-money " at " humanized-date)
+      (= type "salary")
+      (str "Salary " humanized-money " at " humanized-date)
+      ; Debit
+      (= type "debit")
+      (str "Debit " humanized-money " at " humanized-date)
+      (= type "withdrawal")
+      (str "Withdrawal " humanized-money " at " humanized-date)
+      (= type "purchase")
+      (if (empty? other-party)
+        (str "Purchase " humanized-money " at " humanized-date)
+        (str "Purchase " humanized-money " at " humanized-date " on " other-party))
+      :else
+      "No description")))
+
 (defn get-account [account-number]
   (if (integer? account-number)
     (loop [index 0 size (count @accounts)]
