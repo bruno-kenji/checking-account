@@ -18,6 +18,9 @@
          (subvec vector 0 index)
          (subvec vector (inc index)))))
 
+(defn negativate-number [number]
+  (- (max number (- number))))
+
 (defn parse-date [date]
   "yyyy-MM-dd to DateTime"
   (clj-time-format/parse
@@ -151,8 +154,23 @@
       {:error {:message "Unable to credit amount.", :code 500}})))
 
 (defn- post-debits [account-number body]
-  (prn "post-debits says hello")
-  "post-debits says hello")
+  (let [amount (negativate-number (get body :amount))
+        date (get-date (get body :date))
+        type (get body :type)
+        other-party (get body :other-party)
+        description (generate-description type (get body :amount) date other-party)
+        operation-id (generate-operation-id (get-account account-number))
+        params {:amount amount,
+                :date date,
+                :description description,
+                :operation-id operation-id}]
+    (if (new-operation account-number params)
+      {:data {:description description,
+              :amount amount,
+              :account-number account-number,
+              :date date,
+              :id operation-id}}
+      {:error {:message "Unable to debit amount.", :code 500}})))
 
 (defn- get-balance [account-number]
   (prn "get-balance says hello")
