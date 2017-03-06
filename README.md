@@ -16,32 +16,40 @@ GET :hosturl/accounts
 POST :hosturl/accounts  
 
 ##### POST Request Parameters  
-`{"account-number":int,  
+```javascript
+{"account-number":int,  
   "operations":[],  
-  "balance":float}`  
+  "balance":float}
+```
 operation format:  
-`{"amount": float,  
+```javascript
+{"amount": float,  
   "date": "yyyy-MM-dd",  
   "description": "{action} {formatted money} at {yyyy-MM-dd}",  
-  "id": int}`  
+  "id": int}
+```
 
 ### DEBIT
 POST :hosturl/:account-number/debits  
 
 ##### Request Parameters  
-`{"amount":float,  
+```javascript
+{"amount":float,  
   "type":"purchase", "withdrawal" or "debit",  
   "date":"yyyy-MM-dd",  
-  "other-party":"string"}`  
+  "other-party":"string"}
+```
 *other-party* is considered for "purchase" type only  
 
 ### CREDIT
 POST :hosturl/:account-number/credits  
 
 ##### Request Parameters  
-`{"amount":float,  
+```javascript
+{"amount":float,  
   "type":"deposit", "withdrawal" or "credit",  
-  "date":"yyyy-MM-dd"}`  
+  "date":"yyyy-MM-dd"}
+```
 
 ### BALANCE
 GET :hosturl/:account-number/balances  
