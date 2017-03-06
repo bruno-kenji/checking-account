@@ -3,7 +3,8 @@
         ring.mock.request
         checking-account.handler
         cheshire.core)
-  (:require [checking-account.handler-test :refer :all]))
+  (:require [checking-account.handler-test :refer :all]
+            [checking-account.utils :refer [round-decimals]]))
 
 (facts "about `/:account/credits`"
   (fact "POST creates a credit operation to the account"

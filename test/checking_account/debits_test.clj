@@ -3,7 +3,9 @@
         ring.mock.request
         checking-account.handler
         cheshire.core)
-  (:require [checking-account.handler-test :refer :all]))
+  (:require [checking-account.handler-test :refer :all]
+            [checking-account.utils :refer [negativate-number
+                                            round-decimals]]))
 
 (facts "about `/:account/debits`"
   (fact "POST creates a debit operation to the account"

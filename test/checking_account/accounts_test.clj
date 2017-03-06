@@ -14,7 +14,7 @@
 
   (fact "POST creates an account"
     (let [accCount (count @accounts)
-          params {:account-number 789, :operations [], :balance 333}
+          params {:account-number 789, :operations []}
           request (-> (request :post "/accounts")
                       (body (generate-string params))
                       (content-type "application/json; charset=utf-8"))

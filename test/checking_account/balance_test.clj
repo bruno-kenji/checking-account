@@ -3,7 +3,10 @@
         ring.mock.request
         checking-account.handler
         cheshire.core)
-  (:require [checking-account.handler-test :refer :all]))
+  (:require [checking-account.handler-test :refer :all]
+            [checking-account.utils :refer [do-at
+                                            current-date
+                                            humanize-brazilian-money]]))
 
 (do-at "2017-03-01"
   (facts "about `/:account/balance`"
@@ -16,11 +19,6 @@
                                :date date}
             response (app (request :get "/456/balance"))
             body (parse-string (:body response) true)]
-        (prn date)
-        (prn date)
-        (prn date)
-        (prn date)
-        (prn date)
 
         ; start declaring fact
         (:status response) => 200
