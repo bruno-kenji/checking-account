@@ -6,6 +6,8 @@ Install leiningen: https://leiningen.org/.
 
 ## Running the API server
 From the project directory, run: **lein ring server**.  
+## Running tests  
+From the project directory, run **lein midje**.  
 
 ## Using the API
 For testing the requests, use Postman: https://www.getpostman.com/ or the method of your preference.  
