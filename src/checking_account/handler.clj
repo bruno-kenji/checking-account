@@ -11,88 +11,12 @@
             [clj-time.format :as clj-time-format]
             [clj-time.coerce :as clj-time-coerce]
             [clojure.string :as str]
-            [clojure.pprint :as pprint]))
-
-(defn do-at* [date func]
-  (org.joda.time.DateTimeUtils/setCurrentMillisFixed (to-miliseconds date))
-  (try
-    (func)
-    (finally (org.joda.time.DateTimeUtils/setCurrentMillisSystem))))
-
-(defmacro do-at [date & body]
-  "Evalautes the expression at the given time"
-  `(do-at* ~date
-    (fn [] ~@body)))
-
-(defn to-int [param]
-  "Always spits param as integer"
-  (if-not (integer? param)
-    (Integer/parseInt param)
-    param))
-
-(defn is-included-in? [submap m]
-  "Checks if submap is included in map"
-  (clojure.set/subset? (set submap)
-                       (set m)))
-
-(defn delete-element-from-vector [vector index]
-  "Returns vector without given index"
-  (vec (concat
-         (subvec vector 0 index)
-         (subvec vector (inc index)))))
-
-(defn negativate-number [number]
-  (- (max number (- number))))
-
-(defn round-decimals [number decimal-places]
-  "Round a double/float to the given number of decimal-places"
-  (read-string (pprint/cl-format nil (str "~," decimal-places "f") number)))
-
-(defn parse-date [date]
-  "yyyy-MM-dd to DateTime"
-  (clj-time-format/parse
-    (clj-time-format/formatter :year-month-day)
-    date))
-
-(defn to-miliseconds [date]
-  "yyyy-MM-dd to miliseconds since Unix Epoch"
-  (clj-time-coerce/to-long
-    (parse-date date)))
-
-(defn humanize-brazilian-date [date]
-  "Converts yyyy-MM-dd to dd-MM-yyyy"
-  (clj-time-format/unparse
-    (clj-time-format/formatter "dd/MM/yyyy")
-    (parse-date date)))
-
-(defn humanize-brazilian-money [amount]
-  "i.e. Converts 1000.0 to R$ 1000,00"
-  (let [replaced-amount (str/replace (str amount) "." ",")
-        splitted-amount (str/split replaced-amount #",")
-        amount-decimals (last splitted-amount)]
-    (if (< (count amount-decimals) 2)
-      (loop [decimals (str amount-decimals "0")]
-        (if (< (count decimals) 2)
-          (recur (str decimals "0"))
-          (str "R$ " (str (first splitted-amount) "," decimals))))
-      (str "R$ " replaced-amount))))
-
-(def current-date
-  (clj-time-format/unparse
-    (clj-time-format/formatter :year-month-day)
-    (clj-time/now)))
-
-(defn get-date [date]
-  (if (empty? date)
-    current-date
-    date))
+            [checking-account.utils :refer :all]))
 
 (def accounts
   (ref [{:account-number 123,
-         :balance 0,
          :operations []},
         {:account-number 456,
-         :balance 118.08,
          :operations [{:amount 118.08,
                        :date "2017-02-22",
                        :description "Deposit R$ 118.00 at 22/02/2017",
@@ -100,7 +24,6 @@
 
 (defn make-account! [params]
   (let [acc {:account-number (get params :account-number),
-             :balance (get params :balance),
              :operations (get params :operations)}]
     (dosync
       (alter accounts conj acc)
@@ -137,6 +60,12 @@
 
 (defn operations-by-date [operations date]
   (filter #(= date (get % :date)) operations))
+
+(defn operations-until-date [operations date]
+  (filter #(<=
+            (to-miliseconds (get % :date))
+            (to-miliseconds date))
+    operations))
 
 (defn statement-descriptions [operations date]
   (vec (map #(description-without-date (get % :description))
@@ -198,6 +127,50 @@
     (catch Exception e
       (prn "new-operation! Exception: " e)
       false)))
+
+(defn debt-periods [account-number]
+  (let [account-number (to-int account-number)
+        acc (get-account account-number)
+        operations (operations-until-date (get acc :operations) current-date)
+        dates (distinct (vec (map #(% :date) operations)))
+        balances (vec (map #(hash-map
+                              :balance (calculate-balance acc %)
+                              :date %) dates))
+        sorted-balances (vec (sort-by :date balances))
+        sorted-dates (vec (sort dates))
+        negative-balances (filter #(> 0 (get % :balance)) sorted-balances)
+        negative-dates (vec (map #(get % :date) negative-balances))
+        negative-indexes (vec (map #(.indexOf sorted-dates %) negative-dates))
+        negativation-balances (vec
+                                (remove nil?
+                                  (map
+                                    #(do
+                                      (when
+                                        (and
+                                          (>= % 1)
+                                          (>= (get (nth sorted-balances (dec %)) :balance) 0))
+                                        (conj (nth sorted-balances %) {:negativation-index %})))
+                                    negative-indexes)))
+        positivation-balances (vec (map
+                                     (fn [neg-balance]
+                                       (first
+                                         (filter
+                                           #(>=
+                                             (get % :balance)
+                                             0)
+                                           (nthnext sorted-balances (+ (get neg-balance :negativation-index) 1)))))
+                                     negativation-balances))
+        final-balances (map-indexed
+                         (fn [index neg-bal]
+                           (let [end (get (nth positivation-balances index) :date)
+                                 debts {:principal (get neg-bal :balance),
+                                        :start (get neg-bal :date)}]
+                             (if (some? end)
+                               (conj debts
+                                 {:end end})
+                               debts)))
+                         negativation-balances)]
+    final-balances))
 
 (defn- post-accounts [body]
   {:data (make-account! body)})
@@ -264,8 +237,7 @@
       {:error {:message "Unable to retrieve account statements.", :code 500}})))
 
 (defn- get-debts [account-number]
-  (prn "get-debts says hello")
-  "get-debts says hello")
+  {:data {:debts (debt-periods account-number)}})
 
 (defroutes app-routes
   (GET "/accounts" [] (response (get-accounts)))
