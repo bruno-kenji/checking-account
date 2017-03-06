@@ -11,16 +11,10 @@
             [clj-time.format :as clj-time-format]
             [clj-time.coerce :as clj-time-coerce]
             [clojure.string :as str]
-            [checking-account.utils :refer :all]))
+            [checking-account.utils :refer :all]
+            [checking-account.mock :refer :all]))
 
-(def accounts
-  (ref [{:account-number 123,
-         :operations []},
-        {:account-number 456,
-         :operations [{:amount 118.08,
-                       :date "2017-02-22",
-                       :description "Deposit R$ 118.00 at 22/02/2017",
-                       :id 1}]}]))
+(def accounts accounts*)
 
 (defn make-account! [params]
   (let [acc {:account-number (get params :account-number),
