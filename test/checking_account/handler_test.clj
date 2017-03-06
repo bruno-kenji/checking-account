@@ -1,19 +1,22 @@
-(ns restful-clojure.handler-test
-  (:use clojure.test
+(ns checking-account.handler-test
+  (:use midje.sweet
         ring.mock.request
-        restful-clojure.handler))
+        checking-account.handler
+        cheshire.core))
 
-(deftest test-app
-  (testing "users endpoint"
-    (let [response (app (request :get "/users"))]
-      (is (= (:status response) 200))
-      (is (= (get-in response [:headers "Content-Type"]) "application-json"))))
+(background
+  (before :facts
+    (dosync
+      (ref-set accounts [{:account-number 123,
+                          :balance 0,
+                          :operations [],}
+                         {:account-number 456,
+                          :balance 118.08,
+                          :operations [{:amount 118.08,
+                                        :date "2017-02-22",
+                                        :description "Deposit R$ 118.00 at 22/02/2017",
+                                        :id 1}]}]))))
 
-  (testing "lists endpoint"
-    (let [response (app (request :get "/lists"))]
-      (is (= (:status response) 200))
-      (is (= (get-in response [:headers "Content-Type"]) "application-json"))))
-
-  (testing "not-found route"
-    (let [response (app (request :get "/bogus-route"))]
-      (is (= (:status response) 404)))))
+(fact "unexisting routes should return route not found"
+  (let [response (app (request :get "/bogus-route"))]
+    (:status response) => 404))
