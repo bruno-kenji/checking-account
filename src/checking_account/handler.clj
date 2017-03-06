@@ -13,6 +13,28 @@
             [clojure.string :as str]
             [clojure.pprint :as pprint]))
 
+(defn do-at* [date func]
+  (org.joda.time.DateTimeUtils/setCurrentMillisFixed (to-miliseconds date))
+  (try
+    (func)
+    (finally (org.joda.time.DateTimeUtils/setCurrentMillisSystem))))
+
+(defmacro do-at [date & body]
+  "Evalautes the expression at the given time"
+  `(do-at* ~date
+    (fn [] ~@body)))
+
+(defn to-int [param]
+  "Always spits param as integer"
+  (if-not (integer? param)
+    (Integer/parseInt param)
+    param))
+
+(defn is-included-in? [submap m]
+  "Checks if submap is included in map"
+  (clojure.set/subset? (set submap)
+                       (set m)))
+
 (defn delete-element-from-vector [vector index]
   "Returns vector without given index"
   (vec (concat
@@ -76,12 +98,13 @@
                        :description "Deposit R$ 118.00 at 22/02/2017",
                        :id 1}]}]))
 
-(defn make-account [params]
+(defn make-account! [params]
   (let [acc {:account-number (get params :account-number),
              :balance (get params :balance),
              :operations (get params :operations)}]
     (dosync
-      (alter accounts conj acc))))
+      (alter accounts conj acc)
+      acc)))
 
 (defn generate-operation-id [acc]
   (inc (count (get acc :operations))))
@@ -125,7 +148,7 @@
       (let [acc (nth @accounts index)]
         (cond
           (= (get acc :account-number) account-number) acc
-          (< index (dec size)) (recur (inc index) (dec size))
+          (< index size) (recur (inc index) size)
           :else
           (hash-map))))
     (let [acc-num (Integer/parseInt account-number)]
@@ -159,7 +182,7 @@
                                 :descriptions (statement-descriptions operations %)) dates))]
     (sort-by :date statements)))
 
-(defn new-operation [account-number params]
+(defn new-operation! [account-number params]
   (try
     (let [operation {:amount (get params :amount),
                      :date (get params :date),
@@ -171,20 +194,20 @@
       (dosync
         (alter accounts delete-element-from-vector (.indexOf @accounts acc))
         (alter accounts conj updated-acc)
-        (prn @accounts)
         true))
     (catch Exception e
-      (prn "new-operation Exception: " e)
+      (prn "new-operation! Exception: " e)
       false)))
 
 (defn- post-accounts [body]
-  {:data (make-account body)})
+  {:data (make-account! body)})
 
 (defn- get-accounts []
   {:data @accounts})
 
 (defn- post-credits [account-number body]
-  (let [amount (get body :amount)
+  (let [account-number (to-int account-number)
+        amount (get body :amount)
         date (get-date (get body :date))
         type (get body :type)
         description (generate-description type amount date)
@@ -193,16 +216,16 @@
                 :date date,
                 :description description,
                 :operation-id operation-id}]
-    (if (new-operation account-number params)
+    (if (new-operation! account-number params)
       {:data {:description description,
               :amount amount,
-              :account-number account-number,
               :date date,
               :id operation-id}}
       {:error {:message "Unable to credit amount.", :code 500}})))
 
 (defn- post-debits [account-number body]
-  (let [amount (negativate-number (get body :amount))
+  (let [account-number (to-int account-number)
+        amount (negativate-number (get body :amount))
         date (get-date (get body :date))
         type (get body :type)
         other-party (get body :other-party)
@@ -212,17 +235,17 @@
                 :date date,
                 :description description,
                 :operation-id operation-id}]
-    (if (new-operation account-number params)
+    (if (new-operation! account-number params)
       {:data {:description description,
               :amount amount,
-              :account-number account-number,
               :date date,
               :id operation-id}}
       {:error {:message "Unable to debit amount.", :code 500}})))
 
 (defn- get-balance [account-number]
   (try
-    (let [date current-date
+    (let [account-number (to-int account-number)
+          date current-date
           balance (calculate-balance (get-account account-number) date)]
       {:data {:description (humanize-brazilian-money balance),
               :balance balance,
@@ -232,7 +255,8 @@
 
 (defn- get-statements [account-number params]
   (try
-    (let [from (get params :from)
+    (let [account-number (to-int account-number)
+          from (get params :from)
           to (get params :to)]
       {:data {:statements (period-statements account-number from to),
               :period {:from from, :to to}}})
