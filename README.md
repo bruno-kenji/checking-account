@@ -9,11 +9,13 @@ From the project directory, run: **lein ring server**.
 
 # Using the API
 For testing the requests, use Postman: https://www.getpostman.com/ or the method of your preference.  
-Example of URL using localhost: https://localhost:3000/456/debits.  
+Example of URL using localhost: https://localhost:3000/456/balance.  
 
-#### ACCOUNTS
+### ACCOUNTS
 GET hosturl/accounts  
 POST hosturl/accounts  
+
+##### POST Request Parameters  
 `{"account-number":int,  
   "operations":[],  
   "balance":float}`  
@@ -21,33 +23,31 @@ operation format:
 `{"amount": float,  
   "date": "yyyy-MM-dd",  
   "description": "{action} {formatted money} at {yyyy-MM-dd}",  
-  "id": int  
-}`  
+  "id": int}`  
 
-#### DEBIT
+### DEBIT
 POST hosturl/:account-number/debits  
+
+##### Request Parameters  
 `{"amount":float,  
   "type":"purchase", "withdrawal" or "debit",  
   "date":"yyy-MM-dd",  
   "other-party":"string"}`  
 other-party is considered for purchase type  
 
-#### CREDIT
+### CREDIT
 POST hosturl/:account-number/credits  
+
+##### Request Parameters  
 `{"amount":float,  
   "type":"deposit", "withdrawal" or "credit",  
   "date":"yyy-MM-dd"}`  
 
-#### BALANCE
+### BALANCE
 GET hosturl/:account-number/balances  
 
-#### STATEMENTS
-GET hosturl/:account-number/statements  
+### STATEMENTS
+GET hosturl/:account-number/statements?from=*yyyy-MM-dd*&to=*yyyy-MM-dd*  
 
-#### DEBTS
+### DEBTS
 GET hosturl/:account-number/debts  
-
-## TODO/DOING
-Finish Debts endpoint functionality  
-Reformatting (Modularize code)  
-Tests  
