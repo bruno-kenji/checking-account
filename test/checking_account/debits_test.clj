@@ -2,6 +2,7 @@
   (:use midje.sweet
         ring.mock.request
         checking-account.handler
+        checking-account.support
         cheshire.core)
   (:require [checking-account.handler-test :refer :all]
             [checking-account.utils :refer [negativate-number

@@ -2,6 +2,7 @@
   (:use midje.sweet
         ring.mock.request
         checking-account.handler
+        checking-account.support
         cheshire.core))
 
 (background
