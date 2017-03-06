@@ -38,7 +38,7 @@ POST :hosturl/:account-number/debits
   "type":"purchase", "withdrawal" or "debit",  
   "date":"yyyy-MM-dd",  
   "other-party":"string"}
-```  
+```
 *other-party* is considered for "purchase" type only  
 
 ### CREDIT
