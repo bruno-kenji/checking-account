@@ -61,3 +61,6 @@ GET :hosturl/:account-number/statements?from=*yyyy-MM-dd*&to=*yyyy-MM-dd*
 
 ### DEBTS
 GET :hosturl/:account-number/debts  
+
+## Observations
+Due to no-database restrictions, pre-loaded accounts were mocked. The pre-loaded accounts are defined in `checking-account.mock` and have the following account numbers: **123** and **456**.
